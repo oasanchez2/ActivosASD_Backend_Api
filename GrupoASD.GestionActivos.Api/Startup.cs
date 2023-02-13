@@ -1,4 +1,5 @@
 using GrupoASD.GestionActivos.Api.Models;
+using GrupoASD.GestionActivos.Api.Servicios;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -30,6 +31,11 @@ namespace GrupoASD.GestionActivos.Api
             //configure acces to database
             services.AddDbContext<ActivosASDContext>(opt => opt.UseSqlServer(Configuration.GetConnectionString("db")));
             services.AddControllers();
+
+            // configure DI for application services
+            services.AddScoped<ILogsErrorReposotorio, LogsErrorReposotorio>();
+            services.AddScoped<IActivosReposotorio, ActivosReposotorio>();
+
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen();
         }
