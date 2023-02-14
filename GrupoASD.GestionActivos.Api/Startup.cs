@@ -28,6 +28,10 @@ namespace GrupoASD.GestionActivos.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            ////Deshabilita la validación automatica
+            //services.Configure<ApiBehaviorOptions>(options
+            //        => options.SuppressModelStateInvalidFilter = true);
+
             //configure acces to database
             services.AddDbContext<ActivosASDContext>(opt => opt.UseSqlServer(Configuration.GetConnectionString("db")));
             services.AddControllers();
