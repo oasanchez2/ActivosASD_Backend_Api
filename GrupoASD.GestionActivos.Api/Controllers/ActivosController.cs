@@ -29,7 +29,7 @@ namespace GrupoASD.GestionActivos.Api.Controllers
             _logger = logger;
             _logsErrorReposotorio = logsErrorReposotorio;
             _activosReposotorio = activosReposotorio;
-            
+
         }
 
         /// <summary>
@@ -42,66 +42,105 @@ namespace GrupoASD.GestionActivos.Api.Controllers
             try
             {
                 List<Activos> listaActivos = await _activosReposotorio.BuscarTodos();
-                if(listaActivos.Count() <= 0)
+                if (listaActivos.Count() <= 0)
                 {
-                    return NotFound(new { mensaje = "No se encontraron registros en la base de datos."});
+                    return NotFound(new { mensaje = "No se encontraron registros en la base de datos." });
                 }
                 return listaActivos;
-                
+
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                _logger.LogCritical(0, "Exception. {0}", ex.Message);                
+                _logger.LogCritical(0, "Exception. {0}", ex.Message);
                 long id = await _logsErrorReposotorio.InsertAndSaveAsync(ex);
                 return StatusCode(500, new { mensaje = "Se ha genera un error interno consulte para mas detalle con el identificador", idlog = id });
             }
-            
+
         }
 
         // GET: api/Activos/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Activos>> GetActivos(int id)
+        [Route("busqueda")]
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Activos>>> GetActivos(ActivosBusquedaModel activoBusqueda)
         {
-            var activos = await _context.Activos.FindAsync(id);
-
-            if (activos == null)
-            {
-                return NotFound();
-            }
-
-            return activos;
-        }
-
-        // PUT: api/Activos/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutActivos(int id, Activos activos)
-        {
-            if (id != activos.IdActivo)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(activos).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ActivosExists(id))
+                //Validación para que venga un fecha inicio o fin y que la fecha inicio no sea mayor a la final
+                if(activoBusqueda.FechaCompraInicio != null && activoBusqueda.FechaCompraFin == null)
                 {
-                    return NotFound();
+                    return NotFound(new { mensaje = "Debe ingresar una fecha final" });
                 }
-                else
+                if (activoBusqueda.FechaCompraInicio == null && activoBusqueda.FechaCompraFin != null)
                 {
-                    throw;
+                    return NotFound(new { mensaje = "Debe ingresar una fecha Inicial" });
                 }
-            }
+                if (activoBusqueda.FechaCompraInicio != null && activoBusqueda.FechaCompraFin != null)
+                {
+                    if(activoBusqueda.FechaCompraInicio > activoBusqueda.FechaCompraFin)
+                    {
+                        return NotFound(new { mensaje = "La fecha de fin no puede ser menor a la fecha de inicio" });
+                    }
+                }
 
-            return NoContent();
+                List<Activos> activos = await _activosReposotorio.BuscarActivoPeronalizada(activoBusqueda);
+                if (activos.Count() <= 0)
+                {
+                    return NotFound(new { mensaje = "No se encontraron registros en la base de datos." });
+                }
+
+                return activos;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogCritical(0, "Exception. {0}", ex.Message);
+                long id = await _logsErrorReposotorio.InsertAndSaveAsync(ex);
+                return StatusCode(500, new { mensaje = "Se ha genera un error interno consulte para mas detalle con el identificador", idlog = id });
+            }
+        }
+
+        /// <summary>
+        /// Metodo encargado de actualizar algunos campos de los activos
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="activos"></param>
+        /// <returns></returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutActivos(int id, ActivosUpdateModel activoModel)
+        {
+            try
+            {
+                if (id != activoModel.IdActivo)
+                {
+                    return BadRequest(new { mensaje = "El id el activo no corresponde al id a modificar" });
+                }
+
+                Activos activo = await _activosReposotorio.ObtenerActivo(id);
+
+                if (activo == null)
+                {
+                    return NotFound(new { mensaje = string.Format("No existe el activo con identificador {0}", id) });
+                }
+
+                if(activoModel.FechaBaja != null)
+                {
+                    if (activoModel.FechaBaja < activo.FechaCompra)
+                    {
+                        return NotFound(new { mensaje = "La fecha de baja no puede ser menor a la fecha de compra" });
+                    }
+                }
+
+                activo.Serial = activoModel.Serial;
+                activo.FechaBaja = activoModel.FechaBaja;
+                await _activosReposotorio.SaveAsync();
+
+                return Ok(new { mensaje = "Activo actualizado correctamente" });
+            }
+            catch(Exception ex)
+            {
+                _logger.LogCritical(0, "Exception. {0}", ex.Message);
+                long idLog = await _logsErrorReposotorio.InsertAndSaveAsync(ex);
+                return StatusCode(500, new { mensaje = "Se ha genera un error interno consulte para mas detalle con el identificador", idlog = idLog });
+            }
         }
 
         /// <summary>
@@ -116,10 +155,18 @@ namespace GrupoASD.GestionActivos.Api.Controllers
             {
                 if (ModelState.IsValid)
                 {
-                    Activos activoPorNombre = await _activosReposotorio.BuscarActivoPorNombre(activoModel.Nombre);
+                    Activos activoPorNombre = await _activosReposotorio.ObtenerActivoPorNombre(activoModel.Nombre);
                     if(activoPorNombre != null)
                     {
-                        return NotFound(new { mensaje = string.Format("El activo {0} ya se encuentra registrado.", activoModel.Nombre) });
+                        return BadRequest(new { mensaje = string.Format("El activo {0} ya se encuentra registrado.", activoModel.Nombre) });
+                    }
+
+                    if (activoModel.FechaBaja != null)
+                    {
+                        if (activoModel.FechaBaja < activoModel.FechaCompra)
+                        {
+                            return NotFound(new { mensaje = "La fecha de baja no puede ser menor a la fecha de compra" });
+                        }
                     }
 
                     Activos activo = new Activos
@@ -161,24 +208,19 @@ namespace GrupoASD.GestionActivos.Api.Controllers
         }
 
         // DELETE: api/Activos/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Activos>> DeleteActivos(int id)
-        {
-            var activos = await _context.Activos.FindAsync(id);
-            if (activos == null)
-            {
-                return NotFound();
-            }
+        //[HttpDelete("{id}")]
+        //public async Task<ActionResult<Activos>> DeleteActivos(int id)
+        //{
+        //    var activos = await _context.Activos.FindAsync(id);
+        //    if (activos == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            _context.Activos.Remove(activos);
-            await _context.SaveChangesAsync();
+        //    _context.Activos.Remove(activos);
+        //    await _context.SaveChangesAsync();
 
-            return activos;
-        }
-
-        private bool ActivosExists(int id)
-        {
-            return _context.Activos.Any(e => e.IdActivo == id);
-        }
+        //    return activos;
+        //}
     }
 }
