@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using GrupoASD.GestionActivos.Api.Models;
 using GrupoASD.GestionActivos.Api.Servicios;
 using Microsoft.Extensions.Logging;
+using GrupoASD.GestionActivos.Api.Entidades;
 
 namespace GrupoASD.GestionActivos.Api.Controllers
 {
@@ -103,16 +104,60 @@ namespace GrupoASD.GestionActivos.Api.Controllers
             return NoContent();
         }
 
-        // POST: api/Activos
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
+        /// <summary>
+        /// Crea un nuevo activo en la base de datos
+        /// </summary>
+        /// <param name="activoModel"></param>
+        /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<Activos>> PostActivos(Activos activos)
+        public async Task<ActionResult<Activos>> PostActivos(ActivosModel activoModel)
         {
-            _context.Activos.Add(activos);
-            await _context.SaveChangesAsync();
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    Activos activoPorNombre = await _activosReposotorio.BuscarActivoPorNombre(activoModel.Nombre);
+                    if(activoPorNombre != null)
+                    {
+                        return NotFound(new { mensaje = string.Format("El activo {0} ya se encuentra registrado.", activoModel.Nombre) });
+                    }
 
-            return CreatedAtAction("GetActivos", new { id = activos.IdActivo }, activos);
+                    Activos activo = new Activos
+                    {
+                         Nombre = activoModel.Nombre,
+                         Descripcion = activoModel.Descripcion,
+                         IdTipoActivo = activoModel.IdTipoActivo,
+                         Serial = activoModel.Serial,
+                         NumeroInternoInventario = activoModel.NumeroInternoInventario,
+                         Peso = activoModel.Peso,
+                         Alto = activoModel.Alto,
+                         Ancho = activoModel.Ancho,
+                         Largo = activoModel.Largo,
+                         ValorCompra = activoModel.ValorCompra,
+                         FechaCompra = activoModel.FechaCompra,
+                         FechaBaja = activoModel.FechaBaja,
+                         IdEstadoActual = activoModel.IdEstadoActual,
+                         Color = activoModel.Color
+                    };
+                    _activosReposotorio.Insertar(activo);
+                    await _activosReposotorio.SaveAsync();
+                    activoModel.IdActivo = activo.IdActivo;
+
+                    return CreatedAtAction("GetActivos", new { id = activoModel.IdActivo }, activoModel);                    
+                }
+                else
+                {                    
+                    return new UnprocessableEntityObjectResult(ModelState);
+                }
+
+            }
+            catch(Exception ex)
+            {
+                _logger.LogCritical(0, "Exception. {0}", ex.Message);
+                long id = await _logsErrorReposotorio.InsertAndSaveAsync(ex);
+                return StatusCode(500, new { mensaje = "Se ha genera un error interno consulte para mas detalle con el identificador", idlog = id });
+            }
+ 
         }
 
         // DELETE: api/Activos/5
