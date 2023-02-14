@@ -21,13 +21,14 @@ namespace GrupoASD.GestionActivos.Api.Models
 
         public virtual DbSet<Activos> Activos { get; set; }
         public virtual DbSet<EstadosActivos> EstadosActivos { get; set; }
+        public virtual DbSet<LogsError> LogsError { get; set; }
         public virtual DbSet<TipoActivo> TipoActivo { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                //optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=ActivosASD;Trusted_Connection=True;");
+
             }
         }
 
@@ -36,6 +37,10 @@ namespace GrupoASD.GestionActivos.Api.Models
             modelBuilder.Entity<Activos>(entity =>
             {
                 entity.HasKey(e => e.IdActivo);
+
+                entity.HasIndex(e => e.IdEstadoActual);
+
+                entity.HasIndex(e => e.IdTipoActivo);
 
                 entity.Property(e => e.Alto).HasColumnType("numeric(18, 2)");
 
@@ -96,6 +101,30 @@ namespace GrupoASD.GestionActivos.Api.Models
                     .IsRequired()
                     .HasMaxLength(50)
                     .IsUnicode(false);
+            });
+
+            modelBuilder.Entity<LogsError>(entity =>
+            {
+                entity.HasKey(e => e.IdLogError);
+
+                entity.Property(e => e.DayError).HasColumnType("datetime");
+
+                entity.Property(e => e.InnerException).IsUnicode(false);
+
+                entity.Property(e => e.MessageError)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.MethodError)
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.OrignError)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.StackTrace).IsUnicode(false);
             });
 
             modelBuilder.Entity<TipoActivo>(entity =>
