@@ -58,7 +58,42 @@ namespace GrupoASD.GestionActivos.Api.Controllers
 
         }
 
-        // GET: api/Activos/5
+        /// <summary>
+        /// Devuelve un activo encontrado por su id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Activos>> GetActivos(int id)
+        {
+            try
+            {
+                if(id <= 0)
+                {
+                    return NotFound(new { mensaje = "Debe ingresar id mayor a 0" });
+                }
+                Activos activo = await _activosReposotorio.ObtenerActivo(id);
+                if(activo == null)
+                {
+                    return NotFound(new { mensaje = "No se encontraron activo con ese id." });
+                }
+                               
+                return activo;
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical(0, "Exception. {0}", ex.Message);
+                long idlog = await _logsErrorReposotorio.InsertAndSaveAsync(ex);
+                return StatusCode(500, new { mensaje = "Se ha genera un error interno consulte para mas detalle con el identificador", idlog = idlog });
+            }
+        }
+
+        /// <summary>
+        /// Devuelve los activos encontrados segun la busqueda enviada
+        /// </summary>
+        /// <param name="activoBusqueda"></param>
+        /// <returns></returns>
         [Route("busqueda")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Activos>>> GetActivos(ActivosBusquedaModel activoBusqueda)
