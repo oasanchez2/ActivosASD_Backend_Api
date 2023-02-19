@@ -15,21 +15,19 @@ namespace GrupoASD.GestionActivos.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     public class ActivosController : ControllerBase
-    {
-        private readonly ActivosASDContext _context;
+    {      
         private readonly ILogger<ActivosController> _logger;
         private readonly ILogsErrorReposotorio _logsErrorReposotorio;
         private readonly IActivosReposotorio _activosReposotorio;
-        public ActivosController(ActivosASDContext context,
-            ILogger<ActivosController> logger,
+        
+        public ActivosController(ILogger<ActivosController> logger,
             ILogsErrorReposotorio logsErrorReposotorio,
-            IActivosReposotorio activosReposotorio)
-        {
-            _context = context;
+            IActivosReposotorio activosReposotorio,
+            IEstadosActivosRepositorio estadosActivosRepositorio)
+        {           
             _logger = logger;
             _logsErrorReposotorio = logsErrorReposotorio;
             _activosReposotorio = activosReposotorio;
-
         }
 
         /// <summary>
@@ -225,7 +223,8 @@ namespace GrupoASD.GestionActivos.Api.Controllers
                     await _activosReposotorio.SaveAsync();
                     activoModel.IdActivo = activo.IdActivo;
 
-                    return CreatedAtAction("GetActivos", new { id = activoModel.IdActivo }, activoModel);                    
+                    //return CreatedAtAction("GetActivos", new { id = activoModel.IdActivo }, activoModel);
+                    return Ok(activoModel);
                 }
                 else
                 {                    
@@ -241,21 +240,6 @@ namespace GrupoASD.GestionActivos.Api.Controllers
             }
  
         }
-
-        // DELETE: api/Activos/5
-        //[HttpDelete("{id}")]
-        //public async Task<ActionResult<Activos>> DeleteActivos(int id)
-        //{
-        //    var activos = await _context.Activos.FindAsync(id);
-        //    if (activos == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    _context.Activos.Remove(activos);
-        //    await _context.SaveChangesAsync();
-
-        //    return activos;
-        //}
+        
     }
 }

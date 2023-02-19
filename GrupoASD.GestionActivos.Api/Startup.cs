@@ -34,11 +34,15 @@ namespace GrupoASD.GestionActivos.Api
 
             //configure acces to database
             services.AddDbContext<ActivosASDContext>(opt => opt.UseSqlServer(Configuration.GetConnectionString("db")));
-            services.AddControllers();
+            services.AddControllers().AddNewtonsoftJson(options =>
+                     options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+                     );
 
             // configure DI for application services
             services.AddScoped<ILogsErrorReposotorio, LogsErrorReposotorio>();
             services.AddScoped<IActivosReposotorio, ActivosReposotorio>();
+            services.AddScoped<IEstadosActivosRepositorio, EstadosActivosRepositorio>();
+            services.AddScoped<ITipoActivoRepositorio, TipoActivoRepositorio>();
 
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen();
