@@ -33,7 +33,38 @@ namespace GrupoASD.GestionActivos.Api.Servicios
         /// <returns></returns>
         public async Task<List<Activos>> BuscarTodos()
         {
-            return await _context.Activos.ToListAsync();
+            //return await _context.Activos.Include(x => x.IdEstadoActualNavigation).Include(x => x.IdTipoActivoNavigation).ToListAsync();
+            return await _context.Activos.Select(x => new Activos
+            {
+                IdActivo = x.IdActivo,
+                Nombre = x.Nombre,
+                Descripcion = x.Descripcion,
+                IdTipoActivo = x.IdTipoActivo,
+                Serial = x.Serial,
+                NumeroInternoInventario = x.NumeroInternoInventario,
+                Peso = x.Peso,
+                Alto = x.Alto,
+                Ancho = x.Ancho,
+                Largo = x.Largo,
+                ValorCompra = x.ValorCompra,
+                FechaCompra = x.FechaCompra,
+                FechaBaja = x.FechaBaja,
+                IdEstadoActual = x.IdEstadoActual,
+                Color = x.Color,
+                IdEstadoActualNavigation = new EstadosActivos
+                {
+                    IdEstado = x.IdEstadoActualNavigation.IdEstado,
+                    NombreEstado = x.IdEstadoActualNavigation.NombreEstado,
+                    Estado = x.IdEstadoActualNavigation.Estado
+                },
+                IdTipoActivoNavigation = new TipoActivo
+                {
+                    IdTipoActivo = x.IdTipoActivoNavigation.IdTipoActivo,
+                    Nombre = x.IdTipoActivoNavigation.Nombre,
+                    Estado = x.IdTipoActivoNavigation.Estado
+                }
+            }
+             ).ToListAsync();
         }
 
         /// <summary>
@@ -44,19 +75,19 @@ namespace GrupoASD.GestionActivos.Api.Servicios
         public async Task<List<Activos>> BuscarActivoPeronalizada(ActivosBusquedaModel activoBusqueda)
         {
             List<Activos> resultado = new List<Activos>();
-            if(activoBusqueda.IdTipoActivo > 0 && activoBusqueda.FechaCompraInicio == null &&
+            if (activoBusqueda.IdTipoActivo > 0 && activoBusqueda.FechaCompraInicio == null &&
                activoBusqueda.FechaCompraFin == null && string.IsNullOrEmpty(activoBusqueda.Serial))
             {
                 resultado = await _context.Activos.Where(x => x.IdTipoActivo == activoBusqueda.IdTipoActivo).ToListAsync();
             }
-            else if(activoBusqueda.IdTipoActivo > 0 && activoBusqueda.FechaCompraInicio != null &&
+            else if (activoBusqueda.IdTipoActivo > 0 && activoBusqueda.FechaCompraInicio != null &&
                activoBusqueda.FechaCompraFin != null && string.IsNullOrEmpty(activoBusqueda.Serial))
             {
                 resultado = await _context.Activos.Where(x => x.IdTipoActivo == activoBusqueda.IdTipoActivo &&
                                                          x.FechaCompra > activoBusqueda.FechaCompraInicio &&
                                                          x.FechaCompra < activoBusqueda.FechaCompraFin).ToListAsync();
             }
-            else if(activoBusqueda.IdTipoActivo > 0 && activoBusqueda.FechaCompraInicio != null &&
+            else if (activoBusqueda.IdTipoActivo > 0 && activoBusqueda.FechaCompraInicio != null &&
                activoBusqueda.FechaCompraFin != null && !string.IsNullOrEmpty(activoBusqueda.Serial))
             {
                 resultado = await _context.Activos.Where(x => x.IdTipoActivo == activoBusqueda.IdTipoActivo &&
@@ -64,26 +95,26 @@ namespace GrupoASD.GestionActivos.Api.Servicios
                                                          x.FechaCompra < activoBusqueda.FechaCompraFin &&
                                                          x.Serial == activoBusqueda.Serial).ToListAsync();
             }
-            else if(activoBusqueda.IdTipoActivo > 0 && activoBusqueda.FechaCompraInicio == null &&
+            else if (activoBusqueda.IdTipoActivo > 0 && activoBusqueda.FechaCompraInicio == null &&
                activoBusqueda.FechaCompraFin == null && !string.IsNullOrEmpty(activoBusqueda.Serial))
             {
                 resultado = await _context.Activos.Where(x => x.IdTipoActivo == activoBusqueda.IdTipoActivo &&
                                                           x.Serial == activoBusqueda.Serial).ToListAsync();
             }
-            else if(activoBusqueda.IdTipoActivo == 0 && activoBusqueda.FechaCompraInicio != null &&
+            else if (activoBusqueda.IdTipoActivo == 0 && activoBusqueda.FechaCompraInicio != null &&
                activoBusqueda.FechaCompraFin != null && string.IsNullOrEmpty(activoBusqueda.Serial))
             {
                 resultado = await _context.Activos.Where(x => x.FechaCompra > activoBusqueda.FechaCompraInicio &&
                                                           x.FechaCompra < activoBusqueda.FechaCompraFin).ToListAsync();
             }
-            else if(activoBusqueda.IdTipoActivo == 0 && activoBusqueda.FechaCompraInicio != null &&
+            else if (activoBusqueda.IdTipoActivo == 0 && activoBusqueda.FechaCompraInicio != null &&
                activoBusqueda.FechaCompraFin != null && !string.IsNullOrEmpty(activoBusqueda.Serial))
             {
                 resultado = await _context.Activos.Where(x => x.FechaCompra > activoBusqueda.FechaCompraInicio &&
                                                          x.FechaCompra < activoBusqueda.FechaCompraFin &&
                                                          x.Serial == activoBusqueda.Serial).ToListAsync();
             }
-            else if(activoBusqueda.IdTipoActivo == 0 && activoBusqueda.FechaCompraInicio == null &&
+            else if (activoBusqueda.IdTipoActivo == 0 && activoBusqueda.FechaCompraInicio == null &&
                activoBusqueda.FechaCompraFin == null && !string.IsNullOrEmpty(activoBusqueda.Serial))
             {
                 resultado = await _context.Activos.Where(x => x.Serial == activoBusqueda.Serial).ToListAsync();
@@ -99,7 +130,7 @@ namespace GrupoASD.GestionActivos.Api.Servicios
         /// <returns></returns>
         public async Task<Activos> ObtenerActivo(int id)
         {
-            return await _context.Activos.FirstOrDefaultAsync(x => x.IdActivo == id);
+            return await _context.Activos.Include(x => x.IdEstadoActualNavigation).Include(x => x.IdTipoActivoNavigation).FirstOrDefaultAsync(x => x.IdActivo == id);
         }
 
         /// <summary>
@@ -108,7 +139,7 @@ namespace GrupoASD.GestionActivos.Api.Servicios
         /// <returns></returns>
         public async Task<Activos> ObtenerActivoPorNombre(string nombre)
         {
-            return await _context.Activos.FirstOrDefaultAsync(x => x.Nombre.Equals(nombre));
+            return await _context.Activos.Include(x => x.IdEstadoActualNavigation).Include(x => x.IdTipoActivoNavigation).FirstOrDefaultAsync(x => x.Nombre.Equals(nombre));
         }
 
 
